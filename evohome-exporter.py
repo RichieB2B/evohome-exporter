@@ -2,8 +2,7 @@
 
 import sys
 import time
-from requests import HTTPError
-from evohomeclient2 import EvohomeClient, AuthenticationError
+from evohomeclient2 import EvohomeClient
 from keys import username, password
 import prometheus_client as prom
 
@@ -12,7 +11,7 @@ timeout=60
 def refreshEvohome(myclient):
   try:
     myclient._login()
-  except (HTTPError, AuthenticationError) as e:
+  except Exception as e:
     print('{}: {}'.format(type(e).__name__, str(e)), file=sys.stderr)
     return False
   return time.time()
