@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/lib/evohome-exporter/evohome-exporter.py
-User=nobody
-Group=nogroup
+User=daemon
+Group=daemon
 KillMode=process
 Restart=always
 Type=simple
