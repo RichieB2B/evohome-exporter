@@ -1,0 +1,17 @@
+[Unit]
+Description=Evohome Prometheus Client
+After=network.target
+
+[Service]
+ExecStart=/usr/local/lib/evohome-exporter/evohome-exporter.py
+User=nobody
+Group=nogroup
+KillMode=process
+Restart=always
+Type=simple
+RuntimeDirectory=evohome-exporter
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+Alias=evohome.service
