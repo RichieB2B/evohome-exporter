@@ -21,7 +21,11 @@ if __name__ == '__main__':
   upd = prom.Gauge('evohome_updated'            , 'Evohome client last updated')
   up  = prom.Gauge('evohome_up'                 , 'Evohome client status')
   prom.start_http_server(8082)
-  client = EvohomeClient(username, password)
+  try:
+    client = EvohomeClient(username, password)
+  except Exception as e:
+    print('ERROR: can\'t create EvohomeClient\n{}: {}'.format(type(e).__name__, str(e)), file=sys.stderr)
+    sys.exit(1)
   loggedin = True
   lastupdated = 0
 

@@ -8,6 +8,7 @@ User=daemon
 Group=daemon
 KillMode=process
 Restart=always
+RestartSec=60
 Type=simple
 RuntimeDirectory=evohome-exporter
 RuntimeDirectoryMode=0755
