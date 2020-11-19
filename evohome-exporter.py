@@ -34,6 +34,9 @@ if __name__ == '__main__':
       print('{}: {}'.format(type(e).__name__, str(e)), file=sys.stderr)
       temps = {}
       updated = False
+      loggedin=loginEvohome(client)
+      if loggedin:
+        continue
 
     if loggedin and updated:
       up.set(1)
@@ -45,4 +48,3 @@ if __name__ == '__main__':
       up.set(0)
 
     time.sleep(timeout)
-    loggedin=loginEvohome(client)
