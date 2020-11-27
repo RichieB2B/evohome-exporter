@@ -30,8 +30,11 @@ if __name__ == '__main__':
   lastupdated = 0
 
   while True:
+    temps = []
     try:
-      temps = client.temperatures()
+      temp = client.temperatures()
+      for t in temp:
+        temps.append(t)
       updated = True
       lastupdated = time.time()
     except Exception as e:
