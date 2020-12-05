@@ -49,8 +49,10 @@ if __name__ == '__main__':
       up.set(1)
       upd.set(lastupdated)
       for d in temps:
-        eht.labels(d['name'],d['thermostat'],d['id'],'measured').set(d['temp'])
-        eht.labels(d['name'],d['thermostat'],d['id'],'setpoint').set(d['setpoint'])
+        if d['temp']:
+          eht.labels(d['name'],d['thermostat'],d['id'],'measured').set(d['temp'])
+        if d['setpoint']:
+          eht.labels(d['name'],d['thermostat'],d['id'],'setpoint').set(d['setpoint'])
     else:
       up.set(0)
 
