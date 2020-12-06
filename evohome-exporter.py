@@ -40,12 +40,8 @@ def _get_set_point(zone_schedule, day_of_week, spot_time):
 def calculate_planned_temperature(zone_schedule):
     current_time = dt.datetime.now().time()
     day_of_week = dt.datetime.today().weekday()
-    return _get_set_point(
-        zone_schedule["schedule"], day_of_week, current_time
-    ) or _get_set_point(
-        zone_schedule["schedule"],
-        day_of_week - 1 if day_of_week > 0 else 6,
-        dt.time.max,
+    return _get_set_point(zone_schedule, day_of_week, current_time) or _get_set_point(
+        zone_schedule, day_of_week - 1 if day_of_week > 0 else 6, dt.time.max
     )
 
 
@@ -59,11 +55,11 @@ def get_schedules(metrics):
 
     # this takes time, update once per hour
     if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
-        schedules = client.zone_schedules()
+        schedules = client.schedules()
 
-    for zone_id, zone_schedule in schedules.items():
-        planned_temperature = calculate_planned_temperature(zone_schedule)
-        metrics["temp"].labels(zone_schedule["name"], zone_id, "planned").set(
+    for schedule in schedules:
+        planned_temperature = calculate_planned_temperature(schedule["schedule"])
+        metrics["temp"].labels(schedule["name"], schedule["id"], "planned").set(
             planned_temperature
         )
 

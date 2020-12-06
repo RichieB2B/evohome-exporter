@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-evohomeclient = "*"
 prometheus-client = "*"
 pip = "*"
 wheel = "*"
 setuptools = "*"
+evohomeclient = {editable = true, path = "./../evohome-client"}
 
 [dev-packages]
 black = "*"
