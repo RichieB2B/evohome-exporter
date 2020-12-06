@@ -56,7 +56,7 @@ def get_schedules(metrics):
     # this takes time, update once per hour
     if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
         # schedules() is a factory, so convert it into a dict in order to get everything here and now
-        schedules = dict(client.schedules())
+        schedules = list(client.schedules())
 
     for schedule in schedules:
         planned_temperature = calculate_planned_temperature(schedule["schedule"])
