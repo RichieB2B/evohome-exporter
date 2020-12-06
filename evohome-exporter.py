@@ -6,7 +6,7 @@ from evohomeclient2 import EvohomeClient
 from keys import username, password
 import prometheus_client as prom
 
-timeout = 60
+poll_interval = 60
 
 
 def loginEvohome(myclient):
@@ -71,4 +71,4 @@ if __name__ == "__main__":
         else:
             up.set(0)
 
-        time.sleep(timeout)
+        time.sleep(poll_interval)
