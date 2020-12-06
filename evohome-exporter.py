@@ -43,14 +43,12 @@ if __name__ == "__main__":
     while True:
         temps = []
         try:
-            temp = client.temperatures()
-            for t in temp:
-                temps.append(t)
+            temps = list(client.temperatures())
             updated = True
             lastupdated = time.time()
         except Exception as e:
             print("{}: {}".format(type(e).__name__, str(e)), file=sys.stderr)
-            temps = {}
+            temps = []
             updated = False
             loggedin = loginEvohome(client)
             if loggedin:
