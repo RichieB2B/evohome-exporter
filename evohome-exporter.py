@@ -20,7 +20,7 @@ def loginEvohome(myclient):
     return True
 
 
-def _get_set_point(zone_schedule, day_of_week, current_time):
+def _get_set_point(zone_schedule, day_of_week, spot_time):
     daily_schedules = {
         s["DayOfWeek"]: s["Switchpoints"] for s in zone_schedule["DailySchedules"]
     }
@@ -28,7 +28,7 @@ def _get_set_point(zone_schedule, day_of_week, current_time):
         dt.time.fromisoformat(s["TimeOfDay"]): s["heatSetpoint"]
         for s in daily_schedules[day_of_week]
     }
-    candidate_times = [k for k in switch_points.keys() if k <= current_time]
+    candidate_times = [k for k in switch_points.keys() if k <= spot_time]
     if len(candidate_times) == 0:
         # no time less than current time
         return None
@@ -38,7 +38,7 @@ def _get_set_point(zone_schedule, day_of_week, current_time):
 
 
 def calculate_planned_temperature(zone_schedule):
-    current_time = dt.time()
+    current_time = dt.datetime.now().time()
     day_of_week = dt.datetime.today().weekday()
     return _get_set_point(
         zone_schedule["schedule"], day_of_week, current_time
@@ -49,10 +49,22 @@ def calculate_planned_temperature(zone_schedule):
     )
 
 
+schedules_updated = dt.datetime.min
+schedules = {}
+
+
 def get_schedules(metrics):
-    for zone_id, zone_schedule in client.zone_schedules().items():
+    global schedules_updated
+    global schedules
+
+    # this takes time, update once per hour
+    if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
+        schedules = client.zone_schedules()
+
+    for zone_id, zone_schedule in schedules.items():
+        planned_temperature = calculate_planned_temperature(zone_schedule)
         metrics["temp"].labels(zone_schedule["name"], zone_id, "planned").set(
-            calculate_planned_temperature(zone_schedule)
+            planned_temperature
         )
 
 
