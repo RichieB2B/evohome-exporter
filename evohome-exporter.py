@@ -54,7 +54,7 @@ if __name__ == "__main__":
     )
     upd = prom.Gauge("evohome_updated", "Evohome client last updated")
     up = prom.Gauge("evohome_up", "Evohome client status")
-    prom.start_http_server(8882)
+    prom.start_http_server(8082)
     try:
         client = EvohomeClient(username, password)
     except Exception as e:
