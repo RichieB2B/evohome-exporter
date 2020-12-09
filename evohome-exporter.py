@@ -22,7 +22,19 @@ if __name__ == "__main__":
     eht = prom.Gauge(
         "evohome_temperature_celcius",
         "Evohome temperatuur in celsius",
-        ["name", "thermostat", "id", "available", "mode", "type"],
+        ["name", "thermostat", "id", "type"],
+    )
+    zavail = prom.Enum(
+        "evohome_zone_available",
+        "Evohome zone availability",
+        ["name", "thermostat", "id"],
+        states=["yes", "no"],
+    )
+    zmode = prom.Enum(
+        "evohome_zone_mode",
+        "Evohome zone mode",
+        ["name", "thermostat", "id"],
+        states=["FollowSchedule", "TemporaryOverride", "PermanentOverride"],
     )
     upd = prom.Gauge("evohome_updated", "Evohome client last updated")
     up = prom.Gauge("evohome_up", "Evohome client status")
@@ -58,19 +70,19 @@ if __name__ == "__main__":
             up.set(1)
             upd.set(lastupdated)
             for d in temps:
-                mode = d.get("setpointmode", "")
                 if d["temp"]:
                     temp = d["temp"]
                     available = "yes"
                 else:
                     temp = 0
                     available = "no"
-                eht.labels(
-                    d["name"], d["thermostat"], d["id"], available, mode, "measured"
-                ).set(temp)
-                eht.labels(
-                    d["name"], d["thermostat"], d["id"], available, mode, "setpoint"
-                ).set(d["setpoint"])
+                eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(temp)
+                eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
+                    d["setpoint"]
+                )
+                zavail.labels(d["name"], d["thermostat"], d["id"]).state(available)
+                mode = d.get("setpointmode", "FollowSchedule")
+                zmode.labels(d["name"], d["thermostat"], d["id"]).state(mode)
         else:
             up.set(0)
 
