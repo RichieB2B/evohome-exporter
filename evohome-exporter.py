@@ -22,7 +22,7 @@ if __name__ == "__main__":
     eht = prom.Gauge(
         "evohome_temperature_celcius",
         "Evohome temperatuur in celsius",
-        ["name", "thermostat", "id", "type"],
+        ["name", "thermostat", "id", "available", "mode", "type"],
     )
     upd = prom.Gauge("evohome_updated", "Evohome client last updated")
     up = prom.Gauge("evohome_up", "Evohome client status")
@@ -58,14 +58,19 @@ if __name__ == "__main__":
             up.set(1)
             upd.set(lastupdated)
             for d in temps:
+                mode = d.get("setpointmode", "")
                 if d["temp"]:
-                    eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(
-                        d["temp"]
-                    )
-                if d["setpoint"]:
-                    eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
-                        d["setpoint"]
-                    )
+                    temp = d["temp"]
+                    available = "yes"
+                else:
+                    temp = 0
+                    available = "no"
+                eht.labels(
+                    d["name"], d["thermostat"], d["id"], available, mode, "measured"
+                ).set(temp)
+                eht.labels(
+                    d["name"], d["thermostat"], d["id"], available, mode, "setpoint"
+                ).set(d["setpoint"])
         else:
             up.set(0)
 
