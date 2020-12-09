@@ -24,11 +24,10 @@ if __name__ == "__main__":
         "Evohome temperatuur in celsius",
         ["name", "thermostat", "id", "type"],
     )
-    zavail = prom.Enum(
+    zavail = prom.Gauge(
         "evohome_zone_available",
         "Evohome zone availability",
         ["name", "thermostat", "id"],
-        states=["yes", "no"],
     )
     zmode = prom.Enum(
         "evohome_zone_mode",
@@ -36,9 +35,26 @@ if __name__ == "__main__":
         ["name", "thermostat", "id"],
         states=["FollowSchedule", "TemporaryOverride", "PermanentOverride"],
     )
+    tcsperm = prom.Gauge(
+        "evohome_temperaturecontrolsystem_permanent",
+        "Evohome temperatureControlSystem is in permanent state",
+    )
+    tcsmode = prom.Enum(
+        "evohome_temperaturecontrolsystem_mode",
+        "Evohome temperatureControlSystem mode",
+        states=[
+            "Auto",
+            "AutoWithEco",
+            "AutoWithReset",
+            "Away",
+            "DayOff",
+            "HeatingOff",
+            "Custom",
+        ],
+    )
     upd = prom.Gauge("evohome_updated", "Evohome client last updated")
     up = prom.Gauge("evohome_up", "Evohome client status")
-    prom.start_http_server(8082)
+    prom.start_http_server(8882)
     try:
         client = EvohomeClient(username, password)
     except Exception as e:
@@ -69,20 +85,24 @@ if __name__ == "__main__":
         if loggedin and updated:
             up.set(1)
             upd.set(lastupdated)
+            sysmode = client._get_single_heating_system().systemModeStatus
+            tcsperm.set(float(sysmode.get("isPermanent", True)))
+            tcsmode.state(sysmode.get("mode", "Auto"))
             for d in temps:
                 if d["temp"]:
                     temp = d["temp"]
-                    available = "yes"
+                    available = 1
                 else:
                     temp = 0
-                    available = "no"
+                    available = 0
                 eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(temp)
                 eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
                     d["setpoint"]
                 )
-                zavail.labels(d["name"], d["thermostat"], d["id"]).state(available)
-                mode = d.get("setpointmode", "FollowSchedule")
-                zmode.labels(d["name"], d["thermostat"], d["id"]).state(mode)
+                zavail.labels(d["name"], d["thermostat"], d["id"]).set(available)
+                zmode.labels(d["name"], d["thermostat"], d["id"]).state(
+                    d.get("setpointmode", "FollowSchedule")
+                )
         else:
             up.set(0)
 
