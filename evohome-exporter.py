@@ -29,6 +29,11 @@ if __name__ == "__main__":
         "Evohome zone availability",
         ["name", "thermostat", "id"],
     )
+    zfault = prom.Gauge(
+        "evohome_zone_fault",
+        "Evohome zone has active fault(s)",
+        ["name", "thermostat", "id"],
+    )
     zmode = prom.Enum(
         "evohome_zone_mode",
         "Evohome zone mode",
@@ -38,6 +43,10 @@ if __name__ == "__main__":
     tcsperm = prom.Gauge(
         "evohome_temperaturecontrolsystem_permanent",
         "Evohome temperatureControlSystem is in permanent state",
+    )
+    tcsfault = prom.Gauge(
+        "evohome_temperaturecontrolsystem_fault",
+        "Evohome temperatureControlSystem has active fault(s)",
     )
     tcsmode = prom.Enum(
         "evohome_temperaturecontrolsystem_mode",
@@ -85,9 +94,15 @@ if __name__ == "__main__":
         if loggedin and updated:
             up.set(1)
             upd.set(lastupdated)
-            sysmode = client._get_single_heating_system().systemModeStatus
+            tcs = client._get_single_heating_system()
+            sysmode = tcs.systemModeStatus
             tcsperm.set(float(sysmode.get("isPermanent", True)))
             tcsmode.state(sysmode.get("mode", "Auto"))
+            sysfault = 0
+            for af in tcs.activeFaults:
+                print("fault in temperatureControlSystem: {}".format(af))
+                sysfault = 1
+            tcsfault.set(sysfault)
             for d in temps:
                 if d["temp"] is not None:
                     temp = d["temp"]
@@ -103,6 +118,11 @@ if __name__ == "__main__":
                 zmode.labels(d["name"], d["thermostat"], d["id"]).state(
                     d.get("setpointmode", "FollowSchedule")
                 )
+                zonefault = 0
+                for af in d.get("activefaults", []):
+                    print("fault in zone {}: {}".format(d["name"], af))
+                    zonefault = 1
+                zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
         else:
             up.set(0)
 
