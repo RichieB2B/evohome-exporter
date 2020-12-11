@@ -89,7 +89,7 @@ if __name__ == "__main__":
             tcsperm.set(float(sysmode.get("isPermanent", True)))
             tcsmode.state(sysmode.get("mode", "Auto"))
             for d in temps:
-                if d["temp"]:
+                if d["temp"] is not None:
                     temp = d["temp"]
                     available = 1
                 else:
