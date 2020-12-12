@@ -9,6 +9,11 @@ import prometheus_client as prom
 poll_interval = 60
 
 
+class hashabledict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
 def loginEvohome(myclient):
     try:
         myclient._login()
@@ -76,6 +81,8 @@ if __name__ == "__main__":
         sys.exit(1)
     loggedin = True
     lastupdated = 0
+    tcsalerts = set()
+    zonealerts = dict()
 
     while True:
         temps = []
@@ -98,10 +105,19 @@ if __name__ == "__main__":
             sysmode = tcs.systemModeStatus
             tcsperm.set(float(sysmode.get("isPermanent", True)))
             tcsmode.state(sysmode.get("mode", "Auto"))
-            sysfault = 0
-            for af in tcs.activeFaults:
-                print("fault in temperatureControlSystem: {}".format(af))
+            if tcs.activeFaults:
                 sysfault = 1
+                for af in tcs.activeFaults:
+                    afhd = hashabledict(af)
+                    if afhd not in tcsalerts:
+                        tcsalerts.add(afhd)
+                        print(
+                            "fault in temperatureControlSystem: {}".format(af),
+                            file=sys.stderr,
+                        )
+            else:
+                sysfault = 0
+                tcsalerts = set()
             tcsfault.set(sysfault)
             for d in temps:
                 if d["temp"] is not None:
@@ -118,10 +134,21 @@ if __name__ == "__main__":
                 zmode.labels(d["name"], d["thermostat"], d["id"]).state(
                     d.get("setpointmode", "FollowSchedule")
                 )
-                zonefault = 0
-                for af in d.get("activefaults", []):
-                    print("fault in zone {}: {}".format(d["name"], af))
+                if d["name"] not in zonealerts.keys():
+                    zonealerts[d["name"]] = set()
+                if d.get("activefaults"):
                     zonefault = 1
+                    for af in d["activefaults"]:
+                        afhd = hashabledict(af)
+                        if afhd not in zonealerts[d["name"]]:
+                            zonealerts[d["name"]].add(afhd)
+                            print(
+                                "fault in zone {}: {}".format(d["name"], af),
+                                file=sys.stderr,
+                            )
+                else:
+                    zonefault = 0
+                    zonealerts[d["name"]] = set()
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
         else:
             up.set(0)
