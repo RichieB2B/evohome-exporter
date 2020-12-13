@@ -84,8 +84,11 @@ if __name__ == "__main__":
     tcsalerts = set()
     zonealerts = dict()
 
+    oldids = set()
+    labels = {}
     while True:
         temps = []
+        newids = set()
         try:
             temps = list(client.temperatures())
             updated = True
@@ -120,6 +123,8 @@ if __name__ == "__main__":
                 tcsalerts = set()
             tcsfault.set(sysfault)
             for d in temps:
+                newids.add(d["id"])
+                labels[d["id"]] = [d["name"], d["thermostat"], d["id"]]
                 if d["temp"] is not None:
                     temp = d["temp"]
                     available = 1
@@ -152,5 +157,14 @@ if __name__ == "__main__":
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
         else:
             up.set(0)
+
+        for i in oldids:
+            if i not in newids:
+                eht.remove(*labels[i] + ["measured"])
+                eht.remove(*labels[i] + ["setpoint"])
+                zavail.remove(*labesl[i])
+                zmode.remove(*labels[i])
+                zfault.remove(*labels[i])
+        oldids = newids
 
         time.sleep(poll_interval)
