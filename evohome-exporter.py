@@ -109,7 +109,7 @@ if __name__ == "__main__":
             tcsperm.set(float(sysmode.get("isPermanent", True)))
             tcsmode.state(sysmode.get("mode", "Auto"))
             if tcs.activeFaults:
-                sysfault = 1
+                tcsfault.set(1)
                 for af in tcs.activeFaults:
                     afhd = hashabledict(af)
                     if afhd not in tcsalerts:
@@ -119,23 +119,22 @@ if __name__ == "__main__":
                             file=sys.stderr,
                         )
             else:
-                sysfault = 0
+                tcsfault.set(0)
                 tcsalerts = set()
-            tcsfault.set(sysfault)
             for d in temps:
                 newids.add(d["id"])
                 labels[d["id"]] = [d["name"], d["thermostat"], d["id"]]
-                if d["temp"] is not None:
-                    temp = d["temp"]
-                    available = 1
+                if d["temp"] is None:
+                    zavail.labels(d["name"], d["thermostat"], d["id"]).set(0)
+                    eht.remove(d["name"], d["thermostat"], d["id"], "measured")
                 else:
-                    temp = 0
-                    available = 0
-                eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(temp)
+                    zavail.labels(d["name"], d["thermostat"], d["id"]).set(1)
+                    eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(
+                        d["temp"]
+                    )
                 eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
                     d["setpoint"]
                 )
-                zavail.labels(d["name"], d["thermostat"], d["id"]).set(available)
                 zmode.labels(d["name"], d["thermostat"], d["id"]).state(
                     d.get("setpointmode", "FollowSchedule")
                 )
