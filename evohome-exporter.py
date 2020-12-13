@@ -134,21 +134,21 @@ if __name__ == "__main__":
                 zmode.labels(d["name"], d["thermostat"], d["id"]).state(
                     d.get("setpointmode", "FollowSchedule")
                 )
-                if d["name"] not in zonealerts.keys():
-                    zonealerts[d["name"]] = set()
+                if d["id"] not in zonealerts.keys():
+                    zonealerts[d["id"]] = set()
                 if d.get("activefaults"):
                     zonefault = 1
                     for af in d["activefaults"]:
                         afhd = hashabledict(af)
-                        if afhd not in zonealerts[d["name"]]:
-                            zonealerts[d["name"]].add(afhd)
+                        if afhd not in zonealerts[d["id"]]:
+                            zonealerts[d["id"]].add(afhd)
                             print(
                                 "fault in zone {}: {}".format(d["name"], af),
                                 file=sys.stderr,
                             )
                 else:
                     zonefault = 0
-                    zonealerts[d["name"]] = set()
+                    zonealerts[d["id"]] = set()
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
         else:
             up.set(0)
