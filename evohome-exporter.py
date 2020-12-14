@@ -89,6 +89,7 @@ if __name__ == "__main__":
 
     oldids = set()
     labels = {}
+    lastup = False
     while True:
         temps = []
         newids = set()
@@ -159,11 +160,14 @@ if __name__ == "__main__":
                     zonefault = 0
                     zonealerts[d["id"]] = set()
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
+            lastup = True
         else:
             up.set(0)
-            tcsperm.remove(client.system_id)
-            tcsfault.remove(client.system_id)
-            tcsmode.remove(client.system_id)
+            if lastup:
+                tcsperm.remove(client.system_id)
+                tcsfault.remove(client.system_id)
+                tcsmode.remove(client.system_id)
+            lastup = False
 
         for i in oldids:
             if i not in newids:
