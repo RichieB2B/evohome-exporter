@@ -95,6 +95,7 @@ if __name__ == "__main__":
         newids = set()
         try:
             temps = list(client.temperatures())
+            loggedin = True
             updated = True
             lastupdated = time.time()
         except Exception as e:
