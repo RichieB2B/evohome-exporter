@@ -48,14 +48,17 @@ if __name__ == "__main__":
     tcsperm = prom.Gauge(
         "evohome_temperaturecontrolsystem_permanent",
         "Evohome temperatureControlSystem is in permanent state",
+        ["id"],
     )
     tcsfault = prom.Gauge(
         "evohome_temperaturecontrolsystem_fault",
         "Evohome temperatureControlSystem has active fault(s)",
+        ["id"],
     )
     tcsmode = prom.Enum(
         "evohome_temperaturecontrolsystem_mode",
         "Evohome temperatureControlSystem mode",
+        ["id"],
         states=[
             "Auto",
             "AutoWithEco",
@@ -106,10 +109,12 @@ if __name__ == "__main__":
             upd.set(lastupdated)
             tcs = client._get_single_heating_system()
             sysmode = tcs.systemModeStatus
-            tcsperm.set(float(sysmode.get("isPermanent", True)))
-            tcsmode.state(sysmode.get("mode", "Auto"))
+            tcsperm.labels(client.system_id).set(
+                float(sysmode.get("isPermanent", True))
+            )
+            tcsmode.labels(client.system_id).state(sysmode.get("mode", "Auto"))
             if tcs.activeFaults:
-                tcsfault.set(1)
+                tcsfault.labels(client.system_id).set(1)
                 for af in tcs.activeFaults:
                     afhd = hashabledict(af)
                     if afhd not in tcsalerts:
@@ -119,7 +124,7 @@ if __name__ == "__main__":
                             file=sys.stderr,
                         )
             else:
-                tcsfault.set(0)
+                tcsfault.labels(client.system_id).set(0)
                 tcsalerts = set()
             for d in temps:
                 newids.add(d["id"])
@@ -156,12 +161,15 @@ if __name__ == "__main__":
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
         else:
             up.set(0)
+            tcsperm.remove(client.system_id)
+            tcsfault.remove(client.system_id)
+            tcsmode.remove(client.system_id)
 
         for i in oldids:
             if i not in newids:
                 eht.remove(*labels[i] + ["measured"])
                 eht.remove(*labels[i] + ["setpoint"])
-                zavail.remove(*labesl[i])
+                zavail.remove(*labels[i])
                 zmode.remove(*labels[i])
                 zfault.remove(*labels[i])
         oldids = newids
