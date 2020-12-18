@@ -2,6 +2,7 @@
 
 import sys
 import time
+import datetime as dt
 from evohomeclient2 import EvohomeClient
 from keys import username, password
 import prometheus_client as prom
@@ -21,6 +22,51 @@ def loginEvohome(myclient):
         print("{}: {}".format(type(e).__name__, str(e)), file=sys.stderr)
         return False
     return True
+
+
+def _get_set_point(zone_schedule, day_of_week, spot_time):
+    daily_schedules = {
+        s["DayOfWeek"]: s["Switchpoints"] for s in zone_schedule["DailySchedules"]
+    }
+    switch_points = {
+        dt.time.fromisoformat(s["TimeOfDay"]): s["heatSetpoint"]
+        for s in daily_schedules[day_of_week]
+    }
+    candidate_times = [k for k in switch_points.keys() if k <= spot_time]
+    if len(candidate_times) == 0:
+        # no time less than current time
+        return None
+
+    candidate_time = max(candidate_times)
+    return switch_points[candidate_time]
+
+
+def calculate_planned_temperature(zone_schedule):
+    current_time = dt.datetime.now().time()
+    day_of_week = dt.datetime.today().weekday()
+    return _get_set_point(zone_schedule, day_of_week, current_time) or _get_set_point(
+        zone_schedule, day_of_week - 1 if day_of_week > 0 else 6, dt.time.max
+    )
+
+
+schedules_updated = dt.datetime.min
+schedules = {}
+
+
+def get_schedules():
+    global schedules_updated
+    global schedules
+
+    # this takes time, update once per hour
+    if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
+        for zone in client._get_single_heating_system()._zones:
+            schedules[zone.zoneId] = zone.schedule()
+
+        # schedules = {
+        #     zone.zone_id: zone.schedule()
+        #     for zone in client._get_single_heating_system()._zones
+        # }
+        schedules_updated = dt.datetime.now()
 
 
 if __name__ == "__main__":
@@ -95,6 +141,7 @@ if __name__ == "__main__":
         newids = set()
         try:
             temps = list(client.temperatures())
+            get_schedules()
             loggedin = True
             updated = True
             lastupdated = time.time()
@@ -142,9 +189,14 @@ if __name__ == "__main__":
                 eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
                     d["setpoint"]
                 )
-                zmode.labels(d["name"], d["thermostat"], d["id"]).state(
-                    d.get("setpointmode", "FollowSchedule")
-                )
+                mode = d.get("setpointmode", "FollowSchedule")
+                if mode == "FollowSchedule":
+                    planned_temperature = calculate_planned_temperature(schedules[d["id"]])
+                    if d["setpoint"] != planned_temperature:
+                        eht.labels(d["name"], d["thermostat"], d["id"], "planned").set(
+                            planned_temperature
+                        )
+                zmode.labels(d["name"], d["thermostat"], d["id"]).state(mode)
                 if d["id"] not in zonealerts.keys():
                     zonealerts[d["id"]] = set()
                 if d.get("activefaults"):
