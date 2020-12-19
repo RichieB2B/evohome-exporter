@@ -97,3 +97,11 @@ ENV/
 # Rope project settings
 .ropeproject
 
+# direnv
+.envrc
+
+# pipenv
+Pipfile*
+
+# output
+*.out
