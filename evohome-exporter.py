@@ -189,14 +189,12 @@ if __name__ == "__main__":
                 eht.labels(d["name"], d["thermostat"], d["id"], "setpoint").set(
                     d["setpoint"]
                 )
-                mode = d.get("setpointmode", "FollowSchedule")
-                if mode == "FollowSchedule":
-                    planned_temperature = calculate_planned_temperature(schedules[d["id"]])
-                    if d["setpoint"] != planned_temperature:
-                        eht.labels(d["name"], d["thermostat"], d["id"], "planned").set(
-                            planned_temperature
-                        )
-                zmode.labels(d["name"], d["thermostat"], d["id"]).state(mode)
+                eht.labels(d["name"], d["thermostat"], d["id"], "planned").set(
+                    calculate_planned_temperature(schedules[d["id"]])
+                )
+                zmode.labels(d["name"], d["thermostat"], d["id"]).state(
+                    d.get("setpointmode", "FollowSchedule")
+                )
                 if d["id"] not in zonealerts.keys():
                     zonealerts[d["id"]] = set()
                 if d.get("activefaults"):
