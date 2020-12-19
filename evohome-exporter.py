@@ -224,6 +224,7 @@ if __name__ == "__main__":
             if i not in newids:
                 eht.remove(*labels[i] + ["measured"])
                 eht.remove(*labels[i] + ["setpoint"])
+                eht.remove(*labels[i] + ["planned"])
                 zavail.remove(*labels[i])
                 zmode.remove(*labels[i])
                 zfault.remove(*labels[i])
