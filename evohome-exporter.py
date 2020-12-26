@@ -15,6 +15,13 @@ class hashabledict(dict):
         return hash(tuple(sorted(self.items())))
 
 
+def exceptKeyError(func, *args):
+    try:
+        return func(*args)
+    except KeyError:
+        pass
+
+
 def loginEvohome(myclient):
     try:
         myclient._login()
@@ -180,7 +187,9 @@ if __name__ == "__main__":
                 labels[d["id"]] = [d["name"], d["thermostat"], d["id"]]
                 if d["temp"] is None:
                     zavail.labels(d["name"], d["thermostat"], d["id"]).set(0)
-                    eht.remove(d["name"], d["thermostat"], d["id"], "measured")
+                    exceptKeyError(
+                        eht.remove, d["name"], d["thermostat"], d["id"], "measured"
+                    )
                 else:
                     zavail.labels(d["name"], d["thermostat"], d["id"]).set(1)
                     eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(
@@ -215,18 +224,19 @@ if __name__ == "__main__":
         else:
             up.set(0)
             if lastup:
-                tcsperm.remove(client.system_id)
-                tcsfault.remove(client.system_id)
-                tcsmode.remove(client.system_id)
+                exceptKeyError(tcsperm.remove, client.system_id)
+                exceptKeyError(tcsfault.remove, client.system_id)
+                exceptKeyError(tcsmode.remove, client.system_id)
             lastup = False
 
         for i in oldids:
             if i not in newids:
-                eht.remove(*labels[i] + ["measured"])
-                eht.remove(*labels[i] + ["setpoint"])
-                zavail.remove(*labels[i])
-                zmode.remove(*labels[i])
-                zfault.remove(*labels[i])
+                exceptKeyError(eht.remove, *labels[i] + ["measured"])
+                exceptKeyError(eht.remove, *labels[i] + ["setpoint"])
+                exceptKeyError(eht.remove, *labels[i] + ["planned"])
+                exceptKeyError(zavail.remove, *labels[i])
+                exceptKeyError(zmode.remove, *labels[i])
+                exceptKeyError(zfault.remove, *labels[i])
         oldids = newids
 
         time.sleep(poll_interval)
