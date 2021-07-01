@@ -35,6 +35,8 @@ def _get_set_point(zone_schedule, day_of_week, spot_time):
     daily_schedules = {
         s["DayOfWeek"]: s["Switchpoints"] for s in zone_schedule["DailySchedules"]
     }
+    if not daily_schedules:
+        return None
     switch_points = {
         dt.time.fromisoformat(s["TimeOfDay"]): s["heatSetpoint"]
         for s in daily_schedules[day_of_week]
@@ -53,7 +55,7 @@ def calculate_planned_temperature(zone_schedule):
     day_of_week = dt.datetime.today().weekday()
     return _get_set_point(zone_schedule, day_of_week, current_time) or _get_set_point(
         zone_schedule, day_of_week - 1 if day_of_week > 0 else 6, dt.time.max
-    )
+    ) or 0
 
 
 schedules_updated = dt.datetime.min
@@ -67,7 +69,10 @@ def get_schedules():
     # this takes time, update once per hour
     if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
         for zone in client._get_single_heating_system()._zones:
-            schedules[zone.zoneId] = zone.schedule()
+            try:
+                schedules[zone.zoneId] = zone.schedule()
+            except:
+                schedules[zone.zoneId] = { "DailySchedules": [] }
 
         # schedules = {
         #     zone.zone_id: zone.schedule()
