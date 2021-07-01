@@ -15,6 +15,13 @@ class hashabledict(dict):
         return hash(tuple(sorted(self.items())))
 
 
+def exceptKeyError(func, *args):
+    try:
+        return func(*args)
+    except KeyError:
+        pass
+
+
 def loginEvohome(myclient):
     try:
         myclient._login()
@@ -28,6 +35,8 @@ def _get_set_point(zone_schedule, day_of_week, spot_time):
     daily_schedules = {
         s["DayOfWeek"]: s["Switchpoints"] for s in zone_schedule["DailySchedules"]
     }
+    if not daily_schedules:
+        return None
     switch_points = {
         dt.time.fromisoformat(s["TimeOfDay"]): s["heatSetpoint"]
         for s in daily_schedules[day_of_week]
@@ -44,8 +53,12 @@ def _get_set_point(zone_schedule, day_of_week, spot_time):
 def calculate_planned_temperature(zone_schedule):
     current_time = dt.datetime.now().time()
     day_of_week = dt.datetime.today().weekday()
-    return _get_set_point(zone_schedule, day_of_week, current_time) or _get_set_point(
-        zone_schedule, day_of_week - 1 if day_of_week > 0 else 6, dt.time.max
+    return (
+        _get_set_point(zone_schedule, day_of_week, current_time)
+        or _get_set_point(
+            zone_schedule, day_of_week - 1 if day_of_week > 0 else 6, dt.time.max
+        )
+        or 0
     )
 
 
@@ -60,7 +73,10 @@ def get_schedules():
     # this takes time, update once per hour
     if schedules_updated < dt.datetime.now() - dt.timedelta(hours=1):
         for zone in client._get_single_heating_system()._zones:
-            schedules[zone.zoneId] = zone.schedule()
+            try:
+                schedules[zone.zoneId] = zone.schedule()
+            except:
+                schedules[zone.zoneId] = {"DailySchedules": []}
 
         # schedules = {
         #     zone.zone_id: zone.schedule()
@@ -180,7 +196,9 @@ if __name__ == "__main__":
                 labels[d["id"]] = [d["name"], d["thermostat"], d["id"]]
                 if d["temp"] is None:
                     zavail.labels(d["name"], d["thermostat"], d["id"]).set(0)
-                    eht.remove(d["name"], d["thermostat"], d["id"], "measured")
+                    exceptKeyError(
+                        eht.remove, d["name"], d["thermostat"], d["id"], "measured"
+                    )
                 else:
                     zavail.labels(d["name"], d["thermostat"], d["id"]).set(1)
                     eht.labels(d["name"], d["thermostat"], d["id"], "measured").set(
@@ -215,19 +233,19 @@ if __name__ == "__main__":
         else:
             up.set(0)
             if lastup:
-                tcsperm.remove(client.system_id)
-                tcsfault.remove(client.system_id)
-                tcsmode.remove(client.system_id)
+                exceptKeyError(tcsperm.remove, client.system_id)
+                exceptKeyError(tcsfault.remove, client.system_id)
+                exceptKeyError(tcsmode.remove, client.system_id)
             lastup = False
 
         for i in oldids:
             if i not in newids:
-                eht.remove(*labels[i] + ["measured"])
-                eht.remove(*labels[i] + ["setpoint"])
-                eht.remove(*labels[i] + ["planned"])
-                zavail.remove(*labels[i])
-                zmode.remove(*labels[i])
-                zfault.remove(*labels[i])
+                exceptKeyError(eht.remove, *labels[i] + ["measured"])
+                exceptKeyError(eht.remove, *labels[i] + ["setpoint"])
+                exceptKeyError(eht.remove, *labels[i] + ["planned"])
+                exceptKeyError(zavail.remove, *labels[i])
+                exceptKeyError(zmode.remove, *labels[i])
+                exceptKeyError(zfault.remove, *labels[i])
         oldids = newids
 
         time.sleep(poll_interval)
