@@ -192,6 +192,8 @@ if __name__ == "__main__":
                 tcsfault.labels(client.system_id).set(0)
                 tcsalerts = set()
             for d in temps:
+                if d["temp"] is None and not d["name"] and d["setpoint"] == 62.0:
+                    continue
                 newids.add(d["id"])
                 labels[d["id"]] = [d["name"], d["thermostat"], d["id"]]
                 if d["temp"] is None:
