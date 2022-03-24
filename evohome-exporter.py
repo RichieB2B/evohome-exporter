@@ -178,17 +178,26 @@ if __name__ == "__main__":
                 float(sysmode.get("isPermanent", True))
             )
             tcsmode.labels(client.system_id).state(sysmode.get("mode", "Auto"))
+            activefaults = set()
             if tcs.activeFaults:
                 tcsfault.labels(client.system_id).set(1)
                 for af in tcs.activeFaults:
                     afhd = hashabledict(af)
+                    activefaults.add(afhd)
                     if afhd not in tcsalerts:
                         tcsalerts.add(afhd)
                         print(
                             "fault in temperatureControlSystem: {}".format(af),
                             file=sys.stderr,
                         )
-            else:
+            for af in tcsalerts - activefaults:
+                afhd = hashabledict(af)
+                tcsalerts.discard(afhd)
+                print(
+                    "resolved in temperatureControlSystem: {}".format(af),
+                    file=sys.stderr,
+                )
+            if not tcs.activeFaults:
                 tcsfault.labels(client.system_id).set(0)
                 tcsalerts = set()
             for d in temps:
@@ -217,17 +226,26 @@ if __name__ == "__main__":
                 )
                 if d["id"] not in zonealerts.keys():
                     zonealerts[d["id"]] = set()
+                activefaults = set()
                 if d.get("activefaults"):
                     zonefault = 1
                     for af in d["activefaults"]:
                         afhd = hashabledict(af)
+                        activefaults.add(afhd)
                         if afhd not in zonealerts[d["id"]]:
                             zonealerts[d["id"]].add(afhd)
                             print(
                                 "fault in zone {}: {}".format(d["name"], af),
                                 file=sys.stderr,
                             )
-                else:
+                for af in zonealerts[d["id"]] - activefaults:
+                    afhd = hashabledict(af)
+                    zonealerts[d["id"]].discard(afhd)
+                    print(
+                        "resolved in zone {}: {}".format(d["name"], af),
+                        file=sys.stderr,
+                    )
+                if not d.get("activefaults"):
                     zonefault = 0
                     zonealerts[d["id"]] = set()
                 zfault.labels(d["name"], d["thermostat"], d["id"]).set(zonefault)
